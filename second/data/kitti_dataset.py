@@ -387,7 +387,7 @@ def create_kitti_info_file(data_path, save_path=None, relative_path=True):
         label_info=False,
         velodyne=True,
         calib=True,
-        image_ids=test_img_ids,
+        image_ids=100,
         relative_path=relative_path)
     filename = save_path / 'kitti_infos_test.pkl'
     print(f"Kitti info test file is saved to {filename}")

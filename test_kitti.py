@@ -125,5 +125,8 @@ if __name__ == "__main__":
     # points = points[mask]
 
     boxes_lidar, scores, labels = detector.predict_on_points(points)
+    print(boxes_lidar)
+    print(scores)
+    print(labels)
 
     detector.visualize_bev(points, boxes_lidar)
