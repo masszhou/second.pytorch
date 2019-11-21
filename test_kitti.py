@@ -34,7 +34,7 @@ class SecondDetector:
             text_format.Merge(proto_str, self.config)
         self.input_cfg = self.config.eval_input_reader
         self.model_cfg = self.config.model.second
-        config_tool.change_detection_range_v2(self.model_cfg, [-50, -50, 50, 50])
+        # config_tool.change_detection_range_v2(self.model_cfg, [-50, -50, 50, 50])
 
         # ======================================================
         # Build Network, Target Assigner and Voxel Generator
@@ -50,12 +50,22 @@ class SecondDetector:
         # Generate Anchors
         # ======================================================
         grid_size = self.voxel_generator.grid_size
+        print("========= grid_size")
+        print(grid_size)
+        print("========= voxel_size")
+        print(self.voxel_generator.voxel_size)
+        print("========= point_cloud_range")
+        print(self.voxel_generator.point_cloud_range)
         feature_map_size = grid_size[:2] // config_tool.get_downsample_factor(self.model_cfg)
         feature_map_size = [*feature_map_size, 1][::-1]
+        print("========= feature_map_size")
+        print(feature_map_size)
 
         self.anchors = self.target_assigner.generate_anchors(feature_map_size)["anchors"]
         self.anchors = torch.tensor(self.anchors, dtype=torch.float32, device=self.device)
         self.anchors = self.anchors.view(1, -1, 7)
+        print("========= anchors.shape")
+        print(self.anchors.shape)
 
     @staticmethod
     def load_pts_from_file(pts_filepath, pts_dim=4):
@@ -65,6 +75,13 @@ class SecondDetector:
     def load_example_from_points(self, points):
         res = self.voxel_generator.generate(points[:, :4], max_voxels=90000)
         voxels, coords, num_points = res['voxels'], res['coordinates'], res['num_points_per_voxel']
+        print("========== voxels.shape")
+        print(voxels.shape)
+        print("========== coords.shape")
+        print(coords.shape)
+        print("========== num_points")
+        print(num_points.shape)
+
         coords = np.pad(coords, ((0, 0), (1, 0)), mode='constant', constant_values=0)
         voxels = torch.tensor(voxels, dtype=torch.float32, device=self.device)
         coords = torch.tensor(coords, dtype=torch.int32, device=self.device)
@@ -99,34 +116,31 @@ if __name__ == "__main__":
     FLAGS = argparser()
 
     detector = SecondDetector(FLAGS.config_path, FLAGS.ckpt_path)
+    # pptk viewer from HERE
+    v = pptk.viewer(np.random.rand(100, 3))
+    v.set(point_size=0.01, lookat=(0.0,0.0,0.0))
 
-    # # https://www.nuscenes.org/data-collection
-    # v_path = "/media/zzhou/data/data-lyft-3D-objects/lidar/host-a007_lidar1_1230678335302050856.bin"
+    # https://www.nuscenes.org/data-collection
+    # v_path = "/media/zzhou/data/data-lyft-3D-objects/lidar/host-a007_lidar1_1230485630301986856.bin"
     # points_lyft = np.fromfile(v_path, dtype=np.float32, count=-1).reshape([-1, 5])
     # points = np.zeros([points_lyft.shape[0], 4], dtype=np.float32)
-    # points[:, 0] = points_lyft[:, 0]
-    # points[:, 1] = points_lyft[:, 1]
+    # points[:, 0] = points_lyft[:, 1]
+    # points[:, 1] = points_lyft[:, 0] * (-1)
     # points[:, 2] = points_lyft[:, 2]
     # points[:, 3] = points_lyft[:, 3]
-
+    #
     v_path = "/media/zzhou/data/data-KITTI/object/testing/velodyne/000050.bin"
     points = np.fromfile(v_path, dtype=np.float32, count=-1).reshape([-1, 4])
 
-    # v_path = "/media/zzhou/data/data-lyft-3D-objects/train_kitti/velodyne/ada2945b41b1c32054f86fe1bd488bd593c1be35fc4e35c65e40d422f5ae4f52.bin"
-    # points_lyft = np.fromfile(v_path, dtype=np.float32, count=-1).reshape([-1, 4])
-    # points = np.zeros([points_lyft.shape[0], 4], dtype=np.float32)
-    # points[:, 0] = points_lyft[:, 1] * (-1)
-    # points[:, 1] = points_lyft[:, 0]
-    # points[:, 2] = points_lyft[:, 2]
-    # points[:, 3] = points_lyft[:, 3]
-    # x_mask = (points[:, 0] > -70) * (points[:, 0] < 70)
-    # y_mask = (points[:, 1] > -70) * (points[:, 1] < 70)
-    # mask = x_mask * y_mask
-    # points = points[mask]
+    # v_path = "/media/zzhou/data/data-lyft-3D-objects/train_kitti/testing/velodyne/004993.bin"
+    # points = np.fromfile(v_path, dtype=np.float32, count=-1).reshape([-1, 4])
 
     boxes_lidar, scores, labels = detector.predict_on_points(points)
-    print(boxes_lidar)
+    # print(boxes_lidar)
     print(scores)
     print(labels)
 
+    v.clear()
+    v.load(points[:, :3], points[:, 2])
+    v.set(lookat=(0.0, 0.0, 0.0))
     detector.visualize_bev(points, boxes_lidar)

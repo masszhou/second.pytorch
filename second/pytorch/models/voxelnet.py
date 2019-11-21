@@ -323,16 +323,22 @@ class VoxelNet(nn.Module):
             }
         """
         self.start_timer("voxel_feature_extractor")
+        print("=========== vfe in shape:", voxels.shape)
         voxel_features = self.voxel_feature_extractor(voxels, num_points,
                                                       coors)
+        print("=========== vfe out shape:", voxel_features.shape)
         self.end_timer("voxel_feature_extractor")
 
         self.start_timer("middle forward")
+        print("=========== middle in shape:", voxel_features.shape)
         spatial_features = self.middle_feature_extractor(
             voxel_features, coors, batch_size)
+        print("=========== middle out shape:", spatial_features.shape)
         self.end_timer("middle forward")
         self.start_timer("rpn forward")
+        print("=========== RPN in shape:", spatial_features.shape)
         preds_dict = self.rpn(spatial_features)
+        print("=========== RPN out shape:", preds_dict.keys())
         self.end_timer("rpn forward")
         return preds_dict
 
