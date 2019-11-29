@@ -70,6 +70,7 @@ def build(optimizer_config, net, name=None, mixed=False, loss_scale=512.0):
         if optimizer_config.fixed_weight_decay:
             optimizer_func = partial(
                 torch.optim.Adam, betas=(0.9, 0.99), amsgrad=config.amsgrad)
+            print("=========== config.amsgrad", config.amsgrad)
         else:
             # regular adam
             optimizer_func = partial(

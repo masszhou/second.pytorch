@@ -61,9 +61,9 @@ def create_groundtruth_database(dataset_class_name,
         for i in range(num_obj):
             filename = f"{image_idx}_{names[i]}_{i}.bin"
             filepath = database_save_path / filename
-            gt_points = points[point_indices[:, i]]
+            gt_points = points[point_indices[:, i]]  # e.g (152, 4), 152 point inside rotated bbox
 
-            gt_points[:, :3] -= gt_boxes[i, :3]
+            gt_points[:, :3] -= gt_boxes[i, :3]  # translate to origin
             with open(filepath, 'w') as f:
                 gt_points.tofile(f)
             if (used_classes is None) or names[i] in used_classes:
@@ -101,16 +101,16 @@ def create_groundtruth_database(dataset_class_name,
         pickle.dump(all_db_infos, f)
 
 def create_groundtruth_database_parallel(dataset_class_name,
-                                data_path,
-                                info_path=None,
-                                used_classes=None,
-                                database_save_path=None,
-                                db_info_save_path=None,
-                                relative_path=True,
-                                add_rgb=False,
-                                lidar_only=False,
-                                bev_only=False,
-                                coors_range=None):
+                                        data_path,
+                                        info_path=None,
+                                        used_classes=None,
+                                        database_save_path=None,
+                                        db_info_save_path=None,
+                                        relative_path=True,
+                                        add_rgb=False,
+                                        lidar_only=False,
+                                        bev_only=False,
+                                        coors_range=None):
     dataset = get_dataset_class(dataset_class_name)(
         info_path=info_path,
         root_path=data_path,

@@ -65,11 +65,12 @@ def build(input_reader_config,
     grid_size = voxel_generator.grid_size
     feature_map_size = grid_size[:2] // out_size_factor
     feature_map_size = [*feature_map_size, 1][::-1]
-    print("feature_map_size", feature_map_size)
     assert all([n != '' for n in target_assigner.classes]), "you must specify class_name in anchor_generators."
     dataset_cls = get_dataset_class(dataset_cfg.dataset_class_name)
     assert dataset_cls.NumPointFeatures >= 3, "you must set this to correct value"
     assert dataset_cls.NumPointFeatures == num_point_features, "currently you need keep them same"
+    print("===== debug prep_cfg.min_num_of_points_in_gt: ", prep_cfg.min_num_of_points_in_gt)
+
     prep_func = partial(
         prep_pointcloud,
         root_path=dataset_cfg.kitti_root_path,
@@ -85,8 +86,7 @@ def build(input_reader_config,
         gt_loc_noise_std=list(prep_cfg.groundtruth_localization_noise_std),
         global_rotation_noise=list(prep_cfg.global_rotation_uniform_noise),
         global_scaling_noise=list(prep_cfg.global_scaling_uniform_noise),
-        global_random_rot_range=list(
-            prep_cfg.global_random_rotation_range_per_object),
+        global_random_rot_range=list(prep_cfg.global_random_rotation_range_per_object),
         global_translate_noise_std=list(prep_cfg.global_translate_noise_std),
         db_sampler=db_sampler,
         num_point_features=dataset_cls.NumPointFeatures,

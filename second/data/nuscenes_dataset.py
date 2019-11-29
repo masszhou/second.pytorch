@@ -606,12 +606,50 @@ def _fill_trainval_infos(nusc,
         lidar_token = sample["data"]["LIDAR_TOP"]
         cam_front_token = sample["data"]["CAM_FRONT"]
         sd_rec = nusc.get('sample_data', sample['data']["LIDAR_TOP"])
+        # =================== for lidar ===================
+        # {'is_key_frame': True,
+        #  'prev': '',
+        #  'fileformat': 'bin',
+        #  'token': 'ec9950f7b5d4ae85ae48d07786e09cebbf4ee771d054353f1e24a95700b4c4af',
+        #  'timestamp': 1557858039302414.8,
+        #  'next': 'b2fb6b275352ff1bc8d63cae2ec88561dddb044cae6f8e6ee7ada4ed07d79dc7',
+        #  'ego_pose_token': '2d673d4bee560c77788b91e2ee24503538e74a23e7972e3e0099b92015f76dde',
+        #  'sample_token': '24b0962e44420e6322de3f25d9e4e5cc3c7a348ec00bfa69db21517e4ca92cc8',
+        #  'calibrated_sensor_token': '82130f5d48b806b62fec95989081337218fbf338ebcc95115d8afcebb305630c',
+        #  'filename': 'lidar/host-a101_lidar1_1241893239302414726.bin',
+        #  'sensor_modality': 'lidar',
+        #  'channel': 'LIDAR_TOP'}
+        # =================== for camera ===================
+        # {'width': 1920,
+        #  'height': 1080,
+        #  'calibrated_sensor_token': '8e73e320d1fa9e5af96059e6eb1dd7d28e3271dea04de86ead47fa25fd13fd20',
+        #  'token': 'fb40b3b5b9d289cd0e763bec34e327d3317a7b416f787feac0d387363b4d00f0',
+        #  'sample_token': '24b0962e44420e6322de3f25d9e4e5cc3c7a348ec00bfa69db21517e4ca92cc8',
+        #  'is_key_frame': True,
+        #  'prev': '',
+        #  'fileformat': 'jpeg',
+        #  'ego_pose_token': '0c257254dad346c9d90f7970ce2c0b8142f7c6e6a90716f4c0538cd2d2ef77d5',
+        #  'timestamp': 1557858039250000.0,
+        #  'next': '00ba71deb97524b5d9be9b677962b74bb32f89284ad7838462250218786b903e',
+        #  'filename': 'images/host-a101_cam0_1241893239250000006.jpeg',
+        #  'sensor_modality': 'camera',
+        #  'channel': 'CAM_FRONT'}
+
         cs_record = nusc.get('calibrated_sensor',
                              sd_rec['calibrated_sensor_token'])
         pose_record = nusc.get('ego_pose', sd_rec['ego_pose_token'])
         lidar_path, boxes, _ = nusc.get_sample_data(lidar_token)
+        # PosixPath('/media/zzhou/data/data-lyft-3D-objects/lidar/host-a101_lidar1_1241893239302414726.bin')
+        # boxes list[lyft_dataset_sdk.utils.data_classes.Box]
+        # boxes[3].corners() returns array with shape (3, 8)
+        # (Convention: x points forward, y to the left, z up.)
+        # my_boxes[3].name -> "truck"
+        # my_boxes[3].orientation -> Quaternion(0.7094216708769627, 0.009708448436296943, -0.006909889242425616, -0.7046835405696343)
+        # I assume boxes class is for rendering
 
         cam_path, _, cam_intrinsic = nusc.get_sample_data(cam_front_token)
+        # PosixPath('/media/zzhou/data/data-lyft-3D-objects/images/host-a101_cam0_1241893239250000006.jpeg')
+        # 3x3 np.ndarray
         assert Path(lidar_path).exists(), (
             "you must download all trainval data, key-frame only dataset performs far worse than sweeps."
         )
@@ -677,7 +715,7 @@ def _fill_trainval_infos(nusc,
                 nusc.get('sample_annotation', token)
                 for token in sample['anns']
             ]
-            locs = np.array([b.center for b in boxes]).reshape(-1, 3)
+            locs = np.array([b.center for b in boxes]).reshape(-1, 3)  # w.r.t global coordinates, use lidar coord ?
             dims = np.array([b.wlh for b in boxes]).reshape(-1, 3)
             rots = np.array([b.orientation.yaw_pitch_roll[0]
                              for b in boxes]).reshape(-1, 1)
@@ -698,8 +736,7 @@ def _fill_trainval_infos(nusc,
             # we need to convert rot to SECOND format.
             # change the rot format will break all checkpoint, so...
             gt_boxes = np.concatenate([locs, dims, -rots - np.pi / 2], axis=1)
-            assert len(gt_boxes) == len(
-                annotations), f"{len(gt_boxes)}, {len(annotations)}"
+            assert len(gt_boxes) == len(annotations), f"{len(gt_boxes)}, {len(annotations)}"
             info["gt_boxes"] = gt_boxes
             info["gt_names"] = names
             info["gt_velocity"] = velocity.reshape(-1, 2)
